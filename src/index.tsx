@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react"
 import { render } from "react-dom"
 import styled, { css } from "styled-components"
 import { useSwipeable } from "react-swipeable"
@@ -53,6 +53,38 @@ const Container = styled.div`
   overflow: hidden;
 `
 
+const useDisablePinchZoomEffect = () => {
+  useEffect(() => {
+    const disablePinchZoom = (e) => {
+      if (e.touches.length > 1) {
+        e.preventDefault()
+      }
+    }
+    document.addEventListener("touchmove", disablePinchZoom, { passive: false })
+    return () => {
+      document.removeEventListener("touchmove", disablePinchZoom)
+    }
+  }, [])
+}
+
+const SuspendPinchZoom = ({ children }) => {
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const target = ref.current
+    if (!target) return
+    const disablePinchZoom = (e) => {
+      if (e.touches.length > 1) {
+        e.preventDefault()
+      }
+    }
+    target.addEventListener("touchmove", disablePinchZoom, { passive: false })
+    return () => {
+      target.removeEventListener("touchmove", disablePinchZoom)
+    }
+  }, [])
+  return <div ref={ref}>{children}</div>
+}
+
 const SuspendSwipe = (props) => {
   const handlers = useSwipeable({
     onSwiped: (e) => {
@@ -62,6 +94,7 @@ const SuspendSwipe = (props) => {
     trackMouse: true,
     preventDefaultTouchmoveEvent: true
   })
+  // useDisablePinchZoomEffect()
 
   // console.log(handlers)
   return (
@@ -117,9 +150,12 @@ const App = () => {
   return (
     <SuspendSwipe>
       <GlobalStyle></GlobalStyle>
-      <Variables>
-        <GridArea />
-      </Variables>
+
+      <SuspendPinchZoom>
+        <Variables>
+          <GridArea />
+        </Variables>
+      </SuspendPinchZoom>
     </SuspendSwipe>
   )
 }
